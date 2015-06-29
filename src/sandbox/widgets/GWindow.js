@@ -8,13 +8,14 @@ define([
   'dojo/aspect',
   'dojo/on',
   'dojo/Deferred',
+  'dojo/promise/all',
 
   'dijit/_WidgetBase',
   'dijit/_TemplatedMixin',
 
   'dojo/text!./templates/GWindowTemplate.html'
 ], function (declare, lang, baseFx, domAttr, domConstruct, domStyle, aspect,
-  on, Deferred, _WidgetBase, _TemplatedMixin, template) {
+  on, Deferred, all, _WidgetBase, _TemplatedMixin, template) {
   'use strict';
 
   var GWindow = declare([_WidgetBase, _TemplatedMixin], {
@@ -31,9 +32,10 @@ define([
       lang.mixin(this, kwargs);
 
       this.attrs = this.attrs || {};
-      this.isMinimized = this.isMinimized !== undefined ? this.isMinimized : false;
       this.title = this.title || 'Window' + GWindow.count++;
       this.content = this.content || null;
+      this.isMinimized = this.isMinimized !== undefined ? this.isMinimized : false;
+      this.noInitHide = this.noInitHide !== undefined ? this.noInitHide : false;
       this.autoMinimize = this.autoMinimize !== undefined ? this.autoMinimize : true;
     },
 
@@ -42,26 +44,31 @@ define([
 
       domAttr.set(this.domNode, this.attrs);
       this.content && this.setContent(this.content);
-      this.isMinimized ? _initHideAnimation(node).play() : _showFunc(node);
-      this.showAnimation = (this.showAnimation || _showAnimation)(node);
-      this.hideAnimation = (this.hideAnimation || _hideAnimation)(node);
+      !this.noInitHide && this.isMinimized && this.initHide();
+      this.showAnimation = (this.showAnimation || _showPanelAnimation)(node);
+      this.hideAnimation = (this.hideAnimation || _hidePanelAnimation)(node);
 
       if(this.autoMinimize) { this.createListeners(); }
     },
 
-    _afterAnimFunc: function() {
-      this.titleBarListener && this.titleBarListener.resume();
-      this.__deferred.resolve();
-      this.__deferred = null;
+    initHide: function() {
+      var t = domStyle.get(this.panelNode, 'top'),
+        h = domStyle.get(this.panelNode, 'height');
+
+      domStyle.set(this.panelNode, 'top', (t - h) + 'px');
+      domStyle.set(this.windowShade, 'height', 0);
     },
 
-    _beforeAnimFunc: function(anim) {
-      this.titleBarListener && this.titleBarListener.pause();
-      this.__deferred = new Deferred();
-      anim.play();
-      this.isMinimized = !this.isMinimized;
+    _afterAnimFunc: function() {
+      this.titleBarListener && this.titleBarListener.resume();
+    },
 
-      return this.__deferred.promise;
+    _beforeAnimFunc: function(anim, heightEnd) {
+      this.titleBarListener && this.titleBarListener.pause();
+      this.isMinimized = !this.isMinimized;
+      anim.play();
+
+      return _shadeAnimation(this.windowShade, heightEnd, 300);
     },
 
     createListeners: function() {
@@ -77,11 +84,11 @@ define([
     },
 
     show: function() {
-      return this._beforeAnimFunc(this.showAnimation);
+      return this._beforeAnimFunc(this.showAnimation, domStyle.get(this.panelNode, 'height'));
     },
 
     hide: function() {
-      return this._beforeAnimFunc(this.hideAnimation);
+      return this._beforeAnimFunc(this.hideAnimation, 0);
     },
 
     setTitle: function(title) {
@@ -118,15 +125,19 @@ define([
 
   GWindow.count = 0;
 
-  function _initHideAnimation(n) {
-    return _baseAnimation(_slideUpFunc, 0, { onEnd: _showFunc })(n);
+  function _slideDownFunc(n) {
+    return { end: domStyle.get(n, 'top') + domStyle.get(n, 'height'), unit: 'px' };
   }
 
-  function _showAnimation(n) {
+  function _slideUpFunc(n) {
+    return { end: domStyle.get(n, 'top') - domStyle.get(n, 'height'), unit: 'px' };
+  }
+
+  function _showPanelAnimation(n) {
     return _baseAnimation(_slideDownFunc, 300)(n);
   }
 
-  function _hideAnimation(n) {
+  function _hidePanelAnimation(n) {
     return _baseAnimation(_slideUpFunc, 300)(n);
   }
 
@@ -142,16 +153,15 @@ define([
     };
   }
 
-  function _slideDownFunc(n) {
-    return { end: domStyle.get(n, 'top') + domStyle.get(n, 'height') };
-  }
+  function _shadeAnimation(shadeNode, heightEnd, duration) {
+    var d = new Deferred();
 
-  function _slideUpFunc(n) {
-    return { end: domStyle.get(n, 'top') - domStyle.get(n, 'height') };
-  }
+    baseFx.anim(
+      shadeNode, { height: { end: heightEnd } }, duration, null,
+      function() { d.resolve(); }
+    );
 
-  function _showFunc(n) {
-    domStyle.set(n, 'display', 'block');
+    return d.promise;
   }
 
   return GWindow;

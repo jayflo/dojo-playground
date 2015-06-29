@@ -4,7 +4,9 @@
 body {
   width: 100%;
   height: 100%;
-  background-color: #FFFFD1
+  overflow: hidden;
+  padding: 5px;
+  background-color: #FFFFCC;
 }
 
 .gisw-window {

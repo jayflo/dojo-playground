@@ -59,8 +59,6 @@ define([
         arr.splice(index, 0, node);
       	_reindexFrom(arr, index + 1);
       }
-
-
     },
 
     remove: function(indices) {

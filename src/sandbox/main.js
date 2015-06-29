@@ -1,11 +1,11 @@
 define([
 	'exports',
+	'sandbox/widgets/GWindowList',
 	'sandbox/widgets/GWindow',
-	'sandbox/widgets/NodeArray',
 
 	'dojo/dom-construct',
 	'dojo/_base/window'
-], function (sandbox, GWindow, NodeHash, domConstruct, win) {
+], function (sandbox, GWindowList, GWindow, domConstruct, win) {
 	sandbox.init = function () {
 		//	summary:
 		//		This function is executed automatically by the loader configuration.
@@ -14,19 +14,26 @@ define([
 		//		the application; for instance, creating	a page controller or running the
 		//		Dojo parser.
 
-		var w = new GWindow({
-			attrs: {},
+		var gw = new GWindow({
+			title: 'Test',
+			content: domConstruct.create('div'),
 			isMinimized: true
 		}, domConstruct.create('div', null, win.body(), 'first'));
-		w.startup();
+		gw.startup();
 
-		var c = new NodeHash({
-			initItems: [{
-				key: 'one'
+		var gwl = new GWindowList({
+			initGWindows: [{
+				title: 'Tools',
+				content: domConstruct.create('div')
 			}, {
-				key: 'two'
+				title: 'Basemap',
+				content: domConstruct.create('div')
+			}, {
+				title: 'Layers',
+				content: domConstruct.create('div')
 			}]
 		}, domConstruct.create('div', null, win.body(), 'first'));
-		c.startup();
+
+		gwl.startup();
 	};
 });

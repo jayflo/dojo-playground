@@ -12,9 +12,10 @@ define([
   'dijit/_TemplatedMixin',
 
   'sandbox/widgets/GWindow',
-  'sandbox/widget/NodeArray',
+  'sandbox/widgets/NodeArray',
 
-  'dojo/text!./templates/GWindowListTemplate.html'
+  'dojo/text!./templates/GWindowListTemplate.html',
+  'dojo/query'
 ], function (declare, lang, domAttr, domConstruct, domStyle, on, aspect, win,
   _WidgetBase, _TemplatedMixin, GWindow, NodeArray, template) {
   'use strict';
@@ -35,10 +36,6 @@ define([
       this.attrs = this.attrs || {};
       this.initGWindows = this.initGWindows || null;
 
-      this.nodeArr = new NodeArray({
-        createNode: function(node) { return node; }
-      });
-
       this._top = -1;
       this._height = -1;
       this.windowHeight = win.getBox().h;
@@ -50,6 +47,10 @@ define([
       this._top = domStyle.get(this.domNode, 'top');
       this._height = domStyle.get(this.domNode, 'height');
 
+      this.nodeArr = new NodeArray({
+        createNode: function(node) { return node; }
+      }, domConstruct.create('div', null, this.containerNode));
+
       this.initGWindows && this.add(this.initGWindows);
       this.initGWindows = null;
       this.createListeners();
@@ -57,8 +58,8 @@ define([
 
     createListeners: function() {
       this.titleBarListener = on.pausable(
-        this.domNode,
-        on.selector(_titleBarClass, 'click'),
+        this.containerNode,
+        _titleBarClass + ':click',
         this.titleBarClick.bind(this)
       );
 
@@ -72,34 +73,38 @@ define([
         index = this._getGWindowIndex(e.target),
         gwin = this.gWindows[index];
 
-      if(gwin.isMinimized) {
-        this._reclaimHeight(gwin);
-        
-      } else {
-        gwin.hide().then(function() {
-          that._fixupMinimized(index, 'toMin');
-          that._distributeHeight.call(that);
-          that.titleBarListener.resume();
-        });
-      }
+      gwin.toggle().then(function() {
+        that.titleBarListener.resume();
+      });
+
+      // if(gwin.isMinimized) {
+      //   this._reclaimHeight(gwin);
+      //
+      // } else {
+      //   gwin.hide();
+      //   .then(function() {
+      //     that._fixupMinimized(index, 'toMin');
+      //     that._distributeHeight.call(that);
+      //     that.titleBarListener.resume();
+      //   });
+      // }
     },
 
     add: function(params) {
       var gwin;
 
       _makeArray(params).forEach(function(param) {
-        gwin = new GWindow(lang.mixin(param, {
-          isMinimized: true, autoMinimize: false
-        }));
+        gwin = _getGWindow(param);
         this.nodeArr.push(gwin.domNode);
+        gwin.initHide();
         this.minimized.push(this.gWindows.length);
         this.gWindows.push(gwin);
       }, this);
     },
 
-    _distributeHeight: function() {
-      var aH = this._availableHeight();
-    },
+    // _distributeHeight: function() {
+    //   var aH = this._availableHeight();
+    // },
 
     _fixupMinimized: function(index, toFromMin) {
       if(toFromMin === 'toMin') {
@@ -125,6 +130,14 @@ define([
       return index;
     }
   });
+
+  function _getGWindow(param) {
+    return new GWindow(lang.mixin(param, {
+      isMinimized: true,
+      autoMinimize: false,
+      noInitHide: true
+    }), domConstruct.create('div'));
+  }
 
   function _remove(arr, x) {
     arr.splice(arr.indexOf(x), 1);
