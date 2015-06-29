@@ -1,0 +1,22 @@
+@import "../../dijit/themes/claro/claro.css";
+@import "../../dgrid/css/skins/claro.css";
+
+body {
+  width: 100%;
+  height: 100%;
+  background-color: #FFFFD1
+}
+
+.gisw-window {
+  width: 200px;
+}
+
+.gisw-window-titlebar {
+  background-color: #f00;
+  cursor: pointer;
+}
+
+.gisw-window-panel {
+  background-color: #0f0;
+  height: 200px;
+}
