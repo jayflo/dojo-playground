@@ -57,9 +57,10 @@ define([
         node = this._makeNode(param, index);
         domConstruct.place(node, arr[index], 'before');
         arr.splice(index, 0, node);
+      	_reindexFrom(arr, index + 1);
       }
 
-      _reindexFrom(arr, index + 1);
+
     },
 
     remove: function(indices) {
